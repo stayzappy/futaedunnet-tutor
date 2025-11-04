@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+// Import the updated flutter_quill package
 import 'package:flutter_quill/flutter_quill.dart';
+// Remove flutter_quill_extensions import as it's not planned for use
+// import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
 import '../../../config/app_theme.dart';
 
-class UnitContentEditor extends StatelessWidget {
+// Make UnitContentEditor StatefulWidget to manage FocusNode and ScrollController
+class UnitContentEditor extends StatefulWidget {
   final QuillController controller;
   final double minHeight;
   final double maxHeight;
@@ -12,6 +16,28 @@ class UnitContentEditor extends StatelessWidget {
     this.minHeight = 300,
     this.maxHeight = 600,
   });
+
+  @override
+  State<UnitContentEditor> createState() => _UnitContentEditorState();
+}
+
+class _UnitContentEditorState extends State<UnitContentEditor> {
+  late final FocusNode _editorFocusNode;
+  late final ScrollController _editorScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _editorFocusNode = FocusNode();
+    _editorScrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _editorFocusNode.dispose();
+    _editorScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,65 +61,59 @@ class UnitContentEditor extends StatelessWidget {
                 topRight: Radius.circular(12),
               ),
             ),
-            child: QuillToolbar.simple(
-              configurations: QuillSimpleToolbarConfigurations(
-                controller: controller,
-                multiRowsDisplay: false,
-                showFontFamily: false,
-                showFontSize: false,
-                showSearchButton: false,
-                showSubscript: false,
-                showSuperscript: false,
-                showCodeBlock: false,
-                showInlineCode: false,
-                showBackgroundColorButton: false,
-                showClearFormat: true,
-                showAlignmentButtons: true,
-                showDirection: false,
-                showHeaderStyle: true,
-                showListNumbers: true,
-                showListBullets: true,
-                showListCheck: false,
-                showQuote: true,
-                showIndent: true,
-                showLink: true,
-                showUndo: true,
-                showRedo: true,
-                decoration: const BoxDecoration(
-                  color: AppTheme.cardDark,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    topRight: Radius.circular(12),
-                  ),
-                ),
+            // Updated Toolbar Widget - Using config parameter
+            child: QuillSimpleToolbar(
+              controller: widget.controller, // Pass controller directly
+              config: QuillSimpleToolbarConfig(
+                // Use config parameter
+                // Toolbar Options - Using CORRECT names from the API definition
+                showBoldButton: true, // Changed from showBold
+                showItalicButton: true, // Changed from showItalic
+                showUnderLineButton: true, // Changed from showUnderline
+                showStrikeThrough: true, // This one was correct
+                showColorButton: true, // This one was correct
+                showBackgroundColorButton:
+                    false, // Changed from showBackgroundColorButton
+                showClearFormat: true, // This one was correct
+                showAlignmentButtons: true, // This one was correct
+                showListNumbers: true, // This one was correct
+                showListBullets: true, // This one was correct
+                showListCheck: false, // This one was correct
+                showCodeBlock: false, // This one was correct
+                showQuote: true, // This one was correct
+                showIndent: true, // This one was correct
+                showLink: true, // This one was correct
+                showUndo: true, // Changed from showHistory
+                showRedo: true, // Changed from showHistory
+                showDirection: false, // This one was correct
+                showHeaderStyle: true, // This one was correct
+                showFontSize: false, // This one was correct
+                showFontFamily: false, // This one was correct
+                showSearchButton: false, // This one was correct
+                multiRowsDisplay: false, // This one was correct
+                showClipboardPaste: true, // Example feature
+                // Button Options - Updated structure for icon theming
                 buttonOptions: QuillSimpleToolbarButtonOptions(
                   base: QuillToolbarBaseButtonOptions(
+                    // Apply icon theming using iconTheme
                     iconTheme: QuillIconTheme(
-                      // Use IconButtonData for selected state
+                      // Use WidgetStateProperty for selected state
                       iconButtonSelectedData: IconButtonData(
-                        // Use 'color' for icon color in selected state
                         style: ButtonStyle(
-                          // Use 'backgroundColor' for fill color in selected state
                           backgroundColor: WidgetStateProperty.all<Color>(
                             AppTheme.primaryBlue.withOpacity(0.2),
                           ),
-                          // Icon color for selected state (if needed, overrides default)
-                          // foregroundColor is often used for icon color
                           foregroundColor: WidgetStateProperty.all<Color>(
-                            AppTheme
-                                .primaryBlue, // Or use another color if needed
+                            AppTheme.primaryBlue,
                           ),
                         ),
                       ),
-                      // Use IconButtonData for unselected state
+                      // Use WidgetStateProperty for unselected state
                       iconButtonUnselectedData: IconButtonData(
-                        // Use 'color' for icon color in unselected state
                         style: ButtonStyle(
-                          // Use 'backgroundColor' for fill color in unselected state
                           backgroundColor: WidgetStateProperty.all<Color>(
                             Colors.transparent,
                           ),
-                          // Icon color for unselected state
                           foregroundColor: WidgetStateProperty.all<Color>(
                             AppTheme.textSecondary,
                           ),
@@ -113,33 +133,41 @@ class UnitContentEditor extends StatelessWidget {
           // Editor
           Container(
             constraints: BoxConstraints(
-              minHeight: minHeight,
-              maxHeight: maxHeight,
+              minHeight: widget.minHeight,
+              maxHeight: widget.maxHeight,
             ),
             padding: const EdgeInsets.all(16),
-            child: QuillEditor.basic(
-              configurations: QuillEditorConfigurations(
-                controller: controller,
-                padding: EdgeInsets.zero, // Padding around the editor content
+            // Updated Editor Widget - Using config parameter
+            // Requires focusNode and scrollController
+            child: QuillEditor(
+              controller: widget.controller, // Pass controller directly
+              focusNode: _editorFocusNode, // Add required focusNode
+              scrollController:
+                  _editorScrollController, // Add required scrollController
+              config: QuillEditorConfig(
+                // Use config parameter
+                // Editor Options
                 placeholder: 'Start typing your unit content here...',
+                padding: EdgeInsets.zero, // Padding around the editor content
+                // Custom Styling - Updated structure, fixing VerticalSpacing/BoxDecoration order
+                // AND fixing the type for lists (DefaultListBlockStyle) with the correct constructor args
                 customStyles: DefaultStyles(
-                  // Paragraph Style
+                  // Paragraph Style - Corrected structure
                   paragraph: const DefaultTextBlockStyle(
                     TextStyle(
-                      // 1. TextStyle
                       fontSize: 16,
                       color: AppTheme.textPrimary,
                       height: 1.6,
                     ),
-                    VerticalSpacing(0,
-                        0), // 2. verticalSpacing (top, bottom margin for block)
-                    VerticalSpacing(8,
-                        8), // 3. lineSpacing (spacing *within* the block lines)
-                    null, // 4. BoxDecoration? for the block itself (usually null for paragraphs)
-                    // 5. decoration: (named parameter, usually for block background/borders if needed)
+                    HorizontalSpacing(0, 0), // horizontalSpacing
+                    VerticalSpacing(
+                        0, 0), // verticalSpacing (top, bottom margin for block)
+                    VerticalSpacing(
+                        8, 8), // lineSpacing (spacing *within* the block lines)
+                    BoxDecoration(), // decoration: BoxDecoration for the block itself
                   ),
 
-                  // Heading 1 Style
+                  // Heading Styles - Corrected structure
                   h1: const DefaultTextBlockStyle(
                     TextStyle(
                       fontSize: 28,
@@ -147,12 +175,13 @@ class UnitContentEditor extends StatelessWidget {
                       color: AppTheme.textPrimary,
                       height: 1.4,
                     ),
-                    VerticalSpacing(16, 8), // Margin above/below
-                    VerticalSpacing(0, 0), // Line spacing within
-                    null, // BoxDecoration for H1 block itself
+                    HorizontalSpacing(0, 0), // horizontalSpacing
+                    VerticalSpacing(
+                        16, 8), // verticalSpacing (top, bottom margin)
+                    VerticalSpacing(0, 0), // lineSpacing
+                    BoxDecoration(),
                   ),
 
-                  // Heading 2 Style
                   h2: const DefaultTextBlockStyle(
                     TextStyle(
                       fontSize: 24,
@@ -160,12 +189,13 @@ class UnitContentEditor extends StatelessWidget {
                       color: AppTheme.textPrimary,
                       height: 1.4,
                     ),
-                    VerticalSpacing(14, 8), // Margin above/below
-                    VerticalSpacing(0, 0), // Line spacing within
-                    null, // BoxDecoration for H2 block itself
+                    HorizontalSpacing(0, 0), // horizontalSpacing
+                    VerticalSpacing(
+                        14, 8), // verticalSpacing (top, bottom margin)
+                    VerticalSpacing(0, 0), // lineSpacing
+                    BoxDecoration(),
                   ),
 
-                  // Heading 3 Style
                   h3: const DefaultTextBlockStyle(
                     TextStyle(
                       fontSize: 20,
@@ -173,12 +203,14 @@ class UnitContentEditor extends StatelessWidget {
                       color: AppTheme.textPrimary,
                       height: 1.4,
                     ),
-                    VerticalSpacing(12, 8), // Margin above/below
-                    VerticalSpacing(0, 0), // Line spacing within
-                    null, // BoxDecoration for H3 block itself
+                    HorizontalSpacing(0, 0), // horizontalSpacing
+                    VerticalSpacing(
+                        12, 8), // verticalSpacing (top, bottom margin)
+                    VerticalSpacing(0, 0), // lineSpacing
+                    BoxDecoration(),
                   ),
 
-                  // Inline Styles
+                  // Inline Styles - Remain unchanged
                   bold: const TextStyle(fontWeight: FontWeight.bold),
                   italic: const TextStyle(fontStyle: FontStyle.italic),
                   underline:
@@ -190,19 +222,22 @@ class UnitContentEditor extends StatelessWidget {
                     decoration: TextDecoration.underline,
                   ),
 
-                  // Placeholder Style
+                  // Placeholder Style - Corrected structure
                   placeHolder: const DefaultTextBlockStyle(
                     TextStyle(
                       fontSize: 16,
                       color: AppTheme.textHint,
                       height: 1.6,
                     ),
-                    VerticalSpacing(0, 0), // Margin above/below
-                    VerticalSpacing(8, 8), // Line spacing within
-                    null, // BoxDecoration for placeholder block itself
+                    HorizontalSpacing(0, 0), // horizontalSpacing
+                    VerticalSpacing(
+                        0, 0), // verticalSpacing (top, bottom margin)
+                    VerticalSpacing(8, 8), // lineSpacing
+                    BoxDecoration(),
                   ),
 
-                  // List Style
+                  // List Style - CORRECTED TYPE: DefaultListBlockStyle
+                  // AND CORRECTED CONSTRUCTOR ARGS: Added null for checkboxUIBuilder
                   lists: const DefaultListBlockStyle(
                     TextStyle(
                       // 1. TextStyle
@@ -210,15 +245,17 @@ class UnitContentEditor extends StatelessWidget {
                       color: AppTheme.textPrimary,
                       height: 1.6,
                     ),
+                    HorizontalSpacing(0, 0), // 2. horizontalSpacing
                     VerticalSpacing(0,
-                        0), // 2. verticalSpacing (top, bottom margin for list block)
+                        0), // 3. verticalSpacing (top, bottom margin for list block)
                     VerticalSpacing(8,
-                        8), // 3. lineSpacing (spacing within list item lines)
-                    null, // 4. BoxDecoration? for the list block itself (usually null)
-                    null, // 5. QuillCheckboxBuilder? (explicitly provide null)
+                        8), // 4. lineSpacing (spacing within list item lines)
+                    BoxDecoration(), // 5. decoration: BoxDecoration for the list block itself
+                    null, // 6. QuillCheckboxBuilder? checkboxUIBuilder - Pass null as we don't use checklists
+                    // Optional named parameters like indentWidthBuilder, numberPointWidthBuilder can be added here if needed
                   ),
 
-                  // Quote Style
+                  // Quote Style - Corrected structure
                   quote: const DefaultTextBlockStyle(
                     TextStyle(
                       fontSize: 16,
@@ -226,10 +263,11 @@ class UnitContentEditor extends StatelessWidget {
                       height: 1.6,
                       fontStyle: FontStyle.italic,
                     ),
-                    VerticalSpacing(8, 8), // Margin above/below
-                    VerticalSpacing(0, 0), // Line spacing within
+                    HorizontalSpacing(0, 0), // horizontalSpacing
+                    VerticalSpacing(
+                        8, 8), // verticalSpacing (top, bottom margin)
+                    VerticalSpacing(0, 0), // lineSpacing
                     BoxDecoration(
-                      // 4. BoxDecoration for the quote block itself
                       border: Border(
                         left: BorderSide(
                           color: AppTheme.primaryBlue,
@@ -239,18 +277,18 @@ class UnitContentEditor extends StatelessWidget {
                     ),
                   ),
 
-                  // Code Style
+                  // Code Style - Corrected structure
                   code: DefaultTextBlockStyle(
                     const TextStyle(
                       fontSize: 14,
                       color: AppTheme.textPrimary,
                       fontFamily: 'monospace',
-                      // backgroundColor is often handled by the decoration below
                     ),
-                    const VerticalSpacing(8, 8), // Margin above/below
-                    const VerticalSpacing(0, 0), // Line spacing within
+                    const HorizontalSpacing(0, 0), // horizontalSpacing
+                    const VerticalSpacing(
+                        8, 8), // verticalSpacing (top, bottom margin)
+                    const VerticalSpacing(0, 0), // lineSpacing
                     BoxDecoration(
-                      // 4. BoxDecoration for the code block itself
                       color: AppTheme.cardDark,
                       borderRadius: BorderRadius.circular(8),
                     ),

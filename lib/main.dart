@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+// Add this import for FlutterQuillLocalizations
+import 'package:flutter_quill/flutter_quill.dart';
+// Add this import for Flutter's built-in localization delegates
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'config/app_theme.dart';
 import 'config/pocketbase_config.dart';
 import 'providers/auth_provider.dart';
@@ -49,6 +53,17 @@ class FutaEdunetTutorApp extends StatelessWidget {
         title: 'FutaEdunet Tutor Portal',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
+        // Add localizations delegates and supported locales
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          FlutterQuillLocalizations.delegate, // Add this line
+        ],
+        supportedLocales: const [
+          Locale('en', 'US'), // Add other locales if needed
+          // Add other supported locales for FlutterQuill if required
+        ],
         home: const AuthWrapper(),
         routes: {
           '/login': (context) => const LoginScreen(),
