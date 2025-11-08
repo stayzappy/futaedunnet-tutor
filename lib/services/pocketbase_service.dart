@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pocketbase/pocketbase.dart';
@@ -8,6 +9,8 @@ import '../models/department.dart';
 import '../models/tutor.dart';
 import '../models/course.dart';
 import '../models/unit.dart';
+import '../models/course_material.dart'; // Add import for CourseMaterial
+import '../models/course_announcement.dart'; // Add import for CourseAnnouncement
 
 class PocketBaseService {
   final PocketBase pb = PocketBaseConfig.pb;
@@ -372,6 +375,180 @@ class PocketBaseService {
     }
   }
 
+  // ==================== Course Materials ====================
+
+  /// Get materials for a specific course
+   Future<List<CourseMaterial>> getCourseMaterials(String courseId) async {
+    try {
+      print('DEBUG: PocketBaseService.getCourseMaterials - Attempting filter for course: $courseId');
+      final encodedCourseId = Uri.encodeComponent(courseId);
+      final filterString = 'course = "$encodedCourseId"';
+
+      final records = await pb.collection('course_materials').getFullList(
+        filter: filterString,
+        sort: '-createdAt', // Re-add sort based on manual field
+      );
+      print('DEBUG: PocketBaseService.getCourseMaterials - Raw records from PB: ${records.length}');
+      final mappedRecords = records.map((record) => CourseMaterial.fromMap(record.toJson())).toList();
+      print('DEBUG: PocketBaseService.getCourseMaterials - Successfully mapped ${mappedRecords.length} records.');
+      return mappedRecords;
+    } catch (e) {
+      print('ERROR in getCourseMaterials - General: $e');
+      if (e is ClientException) {
+          print('ERROR Response Body: ${e.response}');
+      }
+      rethrow; // Re-throw the exception so the calling service layer can catch it
+    }
+  }
+
+  /// Create a new course material record with a file
+  Future<Map<String, dynamic>> createRecordWithFile(
+    String collectionName,
+    Map<String, dynamic> data,
+    Map<String, dynamic> files,
+  ) async {
+    try {
+      print('DEBUG: Starting createRecordWithFile for collection: $collectionName');
+      print('DEBUG: Data: $data');
+      print('DEBUG: Files: $files.keys');
+
+      final multipartFiles = <http.MultipartFile>[];
+      files.forEach((fieldName, fileBytes) {
+        if (fileBytes is Uint8List) {
+          multipartFiles.add(
+            http.MultipartFile.fromBytes(
+              fieldName,
+              fileBytes,
+              filename: files['$fieldName-filename'] as String? ?? 'file', // Get filename from map, fallback to 'file'
+            ),
+          );
+        }
+      });
+
+      final record = await pb.collection(collectionName).create(
+        body: data,
+        files: multipartFiles,
+      );
+
+      print('DEBUG: Create with file successful, raw record response: ${record.toJson()}');
+      return record.toJson();
+    } on ClientException catch (e) {
+      print('ERROR in createRecordWithFile - ClientException: ${e.toString()}');
+      print('ERROR Response Body: ${e.response}');
+      rethrow;
+    } catch (e) {
+      print('ERROR in createRecordWithFile - General: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete a course material record
+  Future<void> deleteRecord(String collectionName, String recordId) async {
+    try {
+      await pb.collection(collectionName).delete(recordId);
+    } catch (e) {
+      throw Exception('Failed to delete record from $collectionName: $e');
+    }
+  }
+
+  // ==================== Course Announcements ====================
+
+  /// Get announcements for a specific course
+    Future<List<CourseAnnouncement>> getCourseAnnouncements(String courseId) async {
+    try {
+      print('DEBUG: PocketBaseService.getCourseAnnouncements - Attempting filter for course: $courseId');
+      // Use URL encoding for the courseId to ensure special characters are handled
+      final encodedCourseId = Uri.encodeComponent(courseId);
+      // Ensure the filter string is correctly formatted for relation
+      final filterString = 'course = "$encodedCourseId"'; // Wrap ID in quotes for relation filter
+      print('DEBUG: PocketBaseService.getCourseAnnouncements - Filter string: $filterString');
+
+      // Attempt the query *with* sort based on manual field
+      final records = await pb.collection('course_announcements').getFullList(
+        filter: filterString,
+        sort: '-createdAt', // Re-add sort based on manual field
+      );
+
+      print('DEBUG: PocketBaseService.getCourseAnnouncements - Raw records from PB: ${records.length}');
+      if (records.isNotEmpty) {
+         print('DEBUG: First raw announcement record: ${records.first.toJson()}');
+      }
+
+      // Map the records using the standard approach
+      final mappedRecords = <CourseAnnouncement>[];
+      for (final record in records) {
+        try {
+          final announcement = CourseAnnouncement.fromMap(record.toJson());
+          mappedRecords.add(announcement);
+          print('DEBUG: PocketBaseService.getCourseAnnouncements - Mapped announcement: ${announcement.id}');
+        } catch (e, stack) {
+          print('DEBUG: PocketBaseService.getCourseAnnouncements - ERROR mapping record ${record.id}: ${e.toString()}');
+          print('DEBUG: Record  ${record.toJson()}');
+          print('DEBUG: Stack trace: $stack');
+          // Skip the problematic one to load the rest.
+          continue;
+        }
+      }
+
+      print('DEBUG: PocketBaseService.getCourseAnnouncements - Successfully mapped ${mappedRecords.length} records out of ${records.length}.');
+      return mappedRecords;
+    } on ClientException catch (e) {
+      // This is the most likely place for the 400 error
+      print('ERROR in getCourseAnnouncements - ClientException: ${e.toString()}');
+      print('ERROR Response Body: ${e.response}');
+      // Re-throw the original exception to be handled by CourseService
+      rethrow;
+    } catch (e) {
+      print('ERROR in getCourseAnnouncements - General: $e');
+      rethrow; // Re-throw the exception so the calling service layer can catch it
+    }
+  }
+
+  /// Create a new course announcement record
+  Future<Map<String, dynamic>> createRecord(
+    String collectionName,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      print('DEBUG: Starting createRecord for collection: $collectionName');
+      print('DEBUG: Data: $data');
+
+      final record = await pb.collection(collectionName).create(
+        body: data,
+      );
+
+      print('DEBUG: Create successful, raw record response: ${record.toJson()}');
+      return record.toJson();
+    } catch (e) {
+      print('ERROR in createRecord - General: $e');
+      rethrow;
+    }
+  }
+
+  /// Update an existing course announcement record
+  Future<Map<String, dynamic>> updateRecord(
+    String collectionName,
+    String recordId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      print('DEBUG: Starting updateRecord for collection: $collectionName, record: $recordId');
+      print('DEBUG: Data: $data');
+
+      final record = await pb.collection(collectionName).update(
+        recordId,
+        body: data,
+      );
+
+      print('DEBUG: Update successful, raw record response: ${record.toJson()}');
+      return record.toJson();
+    } catch (e) {
+      print('ERROR in updateRecord - General: $e');
+      rethrow;
+    }
+  }
+
+
   // ==================== File Upload ====================
   
      Future<String> uploadFile(String collection, String recordId, String fieldName, List<int> fileBytes, String fileName) async {
@@ -438,6 +615,15 @@ class PocketBaseService {
       // Catch any other errors
       print('ERROR in uploadFile - General: $e');
       rethrow; // Re-throw the exception so the calling service layer can catch it
+    }
+  }
+
+    Future<Map<String, dynamic>> getRecordById(String collectionName, String recordId) async {
+    try {
+      final record = await pb.collection(collectionName).getOne(recordId);
+      return record.toJson();
+    } catch (e) {
+      throw Exception('Failed to fetch record by ID: ${e.toString()}');
     }
   }
 }

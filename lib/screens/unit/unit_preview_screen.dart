@@ -1,3 +1,5 @@
+// lib/screens/tutor/unit_preview_screen.dart
+import 'dart:async'; // Add this import for Timer
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
@@ -28,6 +30,7 @@ class _UnitPreviewScreenState extends State<UnitPreviewScreen> {
   VideoPlayerController? _videoController;
   bool _isVideoInitialized = false;
   bool _isLoadingVideo = false;
+  Timer? _timer; // Add a timer
 
   @override
   void initState() {
@@ -39,6 +42,7 @@ class _UnitPreviewScreenState extends State<UnitPreviewScreen> {
 
   @override
   void dispose() {
+    _timer?.cancel(); // Cancel the timer when the widget is disposed
     _videoController?.dispose();
     super.dispose();
   }
@@ -67,6 +71,8 @@ class _UnitPreviewScreenState extends State<UnitPreviewScreen> {
           _isVideoInitialized = true;
           _isLoadingVideo = false;
         });
+        // Start the timer to update the UI periodically after initialization
+        _startTimer();
       }
     } catch (e) {
       setState(() => _isLoadingVideo = false);
@@ -76,13 +82,37 @@ class _UnitPreviewScreenState extends State<UnitPreviewScreen> {
     }
   }
 
+  // --- New Method to Start the Timer ---
+  void _startTimer() {
+    _timer?.cancel(); // Cancel any existing timer first
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      // Update UI only if mounted and video is initialized
+      if (mounted && _videoController != null && _isVideoInitialized) {
+        setState(() {
+          // No need to explicitly update state variables here,
+          // the UI will rebuild and use the current values from _videoController.value
+          // e.g., _videoController.value.position, _videoController.value.duration
+        });
+      }
+    });
+  }
+
+  // --- New Method to Stop the Timer ---
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  // --- Updated Play/Pause Logic to manage Timer ---
   void _togglePlayPause() {
     if (_videoController != null && _isVideoInitialized) {
       setState(() {
         if (_videoController!.value.isPlaying) {
           _videoController!.pause();
+          _stopTimer(); // Stop updating when paused
         } else {
           _videoController!.play();
+          _startTimer(); // Start updating when played
         }
       });
     }
@@ -288,7 +318,7 @@ class _UnitPreviewScreenState extends State<UnitPreviewScreen> {
           // Play/Pause overlay
           if (!_videoController!.value.isPlaying)
             GestureDetector(
-              onTap: _togglePlayPause,
+              onTap: _togglePlayPause, // Use the new method
               child: Container(
                 decoration: const BoxDecoration(
                   color: Colors.black54,
@@ -318,6 +348,9 @@ class _UnitPreviewScreenState extends State<UnitPreviewScreen> {
   }
 
   Widget _buildVideoControls() {
+    if (_videoController == null || !_isVideoInitialized) {
+      return const SizedBox(); // No controls if not initialized
+    }
     return Container(
       color: Colors.black87,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -329,7 +362,7 @@ class _UnitPreviewScreenState extends State<UnitPreviewScreen> {
               _videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow,
               color: Colors.white,
             ),
-            onPressed: _togglePlayPause,
+            onPressed: _togglePlayPause, // Use the new method
           ),
           // Time display
           Text(
