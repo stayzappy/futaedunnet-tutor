@@ -4,7 +4,7 @@ class PocketBaseConfig {
   // TODO: Replace with your actual PocketBase URL
   // Example: 'http://127.0.0.1:8090' for local development
   // or 'https://your-domain.pocketbase.io' for production
-  static const String baseUrl = 'http://127.0.0.1:8090';
+  static const String baseUrl = 'https://futaedunnet.pockethost.io/';
   
   static late PocketBase pb;
   

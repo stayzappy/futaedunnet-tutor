@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "futaedunnet"
+  },
+  "targets": {
+    "futaedunnet": {
+      "hosting": {
+        "tutor": [
+          "futaedunnet"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
